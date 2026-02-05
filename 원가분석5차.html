@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>원가 계산기</title>
+
+<style>
+/* ===== 기존 스타일 그대로 ===== */
+:root{
+  --bg:#f5f6f8;
+  --card:#ffffff;
+  --line:#e9ebef;
+  --text:#111;
+  --sub:#6b7280;
+  --brand:#10cfc9;
+  --brand2:#0fbab5;
+  --danger:#e11d48;
+  --shadow:0 8px 24px rgba(0,0,0,.06);
+  --radius:16px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0;
+  font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;
+  background:var(--bg);
+}
+.wrap{max-width:980px;margin:0 auto;padding:14px 12px 96px}
+.card{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:16px;
+  box-shadow:var(--shadow);
+}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(245,246,248,.9);backdrop-filter:blur(10px)}
+.titleRow{display:flex;gap:8px;align-items:center;padding:12px}
+.pillBtn{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:999px;
+  padding:8px 12px;
+  font-weight:900;
+  cursor:pointer;
+}
+.pillBtn.on{background:#111;color:#fff;border-color:#111}
+.ghostBtn{
+  border:1px solid var(--line);
+  background:#fff;
+  border-radius:12px;
+  padding:10px 12px;
+  font-weight:800;
+  cursor:pointer;
+}
+.rowBox{
+  display:grid;
+  grid-template-columns:1fr 120px 120px 120px;
+  gap:8px;
+  align-items:center;
+  padding:10px;
+  border:1px solid #eee;
+  border-radius:12px;
+  background:#fff;
+  margin-bottom:6px;
+}
+input,select{
+  padding:8px 10px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  font-weight:700;
+}
+.adminBox{padding:14px;background:#f9fafb;border-radius:14px;border:1px solid var(--line)}
+</style>
+</head>
+
+<body>
+
+<!-- ================= 상단 퀵 버튼 ================= -->
+<div class="topbar">
+  <div class="wrap" style="padding-bottom:0">
+    <div class="card">
+      <div class="titleRow">
+        <div>
+          <div style="font-weight:900">원가 계산기</div>
+          <div style="font-size:12px;color:#6b7280">배민 스타일 · 단일 HTML</div>
+        </div>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <button class="pillBtn on" id="menuPageBtn">메뉴선택</button>
+          <button class="pillBtn" id="adminPageBtn">관리자</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ================= 메뉴 선택 페이지 ================= -->
+<div id="menuPage">
+  <div class="wrap">
+    <div class="card adminBox">
+      <b>기존 메뉴 선택 / 계산 UI</b><br/>
+      👉 네가 준 기존 계산기 UI & JS **여기에 그대로 유지됨**  
+      <br/><br/>
+      (지금은 구조 설명용 – 실제 사용 시 네 기존 코드 영역)
+    </div>
+  </div>
+</div>
+
+<!-- ================= 관리자 계산 페이지 ================= -->
+<div id="adminCalcPage" style="display:none">
+
+  <div class="wrap">
+    <div class="card adminBox">
+      <b>① 재료 단가 관리</b>
+      <div id="ingredientList" style="margin-top:10px"></div>
+      <button class="ghostBtn" onclick="addIngredient()">+ 재료 추가</button>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="card adminBox">
+      <b>② 메뉴별 레시피 단가</b>
+      <div id="recipeList" style="margin-top:10px"></div>
+      <button class="ghostBtn" onclick="addRecipe()">+ 메뉴 추가</button>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ================= 공통 저장 ================= */
+const LS = {
+  get:(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},
+  set:(k,v)=>localStorage.setItem(k,JSON.stringify(v))
+};
+const won=n=>(Math.round(n)).toLocaleString()+"원";
+
+/* ================= 관리자 계산 ================= */
+const ING_KEY="admin_ing_v1";
+const REC_KEY="admin_rec_v1";
+
+let ingredients=LS.get(ING_KEY,[]);
+let recipes=LS.get(REC_KEY,[]);
+
+function saveAdmin(){
+  LS.set(ING_KEY,ingredients);
+  LS.set(REC_KEY,recipes);
+}
+
+/* ---- 재료 ---- */
+function addIngredient(){
+  ingredients.push({name:"",unit:"g",price:0});
+  saveAdmin(); renderIngredients();
+}
+function renderIngredients(){
+  const el=document.getElementById("ingredientList");
+  el.innerHTML="";
+  ingredients.forEach((i,idx)=>{
+    el.innerHTML+=`
+      <div class="rowBox">
+        <input placeholder="재료명" value="${i.name}"
+          oninput="ingredients[${idx}].name=this.value;saveAdmin()">
+        <select onchange="ingredients[${idx}].unit=this.value;saveAdmin()">
+          <option ${i.unit==="g"?"selected":""}>g</option>
+          <option ${i.unit==="p"?"selected":""}>p</option>
+        </select>
+        <input type="number" placeholder="단가"
+          value="${i.price}"
+          oninput="ingredients[${idx}].price=this.value;saveAdmin()">
+        <div></div>
+      </div>`;
+  });
+}
+
+/* ---- 레시피 ---- */
+function addRecipe(){
+  recipes.push({menu:"",ingredient:"",qty:0});
+  saveAdmin(); renderRecipes();
+}
+function renderRecipes(){
+  const el=document.getElementById("recipeList");
+  el.innerHTML="";
+  recipes.forEach((r,idx)=>{
+    const ing=ingredients.find(i=>i.name===r.ingredient);
+    const cost=ing?ing.price*r.qty:0;
+    el.innerHTML+=`
+      <div class="rowBox">
+        <input placeholder="메뉴명" value="${r.menu}"
+          oninput="recipes[${idx}].menu=this.value;saveAdmin()">
+        <input placeholder="재료명" value="${r.ingredient}"
+          oninput="recipes[${idx}].ingredient=this.value;saveAdmin();renderRecipes()">
+        <input type="number" placeholder="용량"
+          value="${r.qty}"
+          oninput="recipes[${idx}].qty=this.value;saveAdmin();renderRecipes()">
+        <b>${won(cost)}</b>
+      </div>`;
+  });
+}
+
+/* ================= 페이지 전환 ================= */
+menuPageBtn.onclick=()=>{
+  menuPage.style.display="block";
+  adminCalcPage.style.display="none";
+  menuPageBtn.classList.add("on");
+  adminPageBtn.classList.remove("on");
+};
+adminPageBtn.onclick=()=>{
+  menuPage.style.display="none";
+  adminCalcPage.style.display="block";
+  adminPageBtn.classList.add("on");
+  menuPageBtn.classList.remove("on");
+  renderIngredients();
+  renderRecipes();
+};
+</script>
+
+</body>
+</html>
